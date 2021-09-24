@@ -1,4 +1,6 @@
-/* global PDFJS */
+/* global pdfjsViewer */
+/* global pdfjsLib */
+
 import Ember from 'ember'
 
 const { getOwner, Service } = Ember
@@ -10,7 +12,9 @@ export default Service.extend({
     let appConfig = getOwner(this).resolveRegistration('config:environment')
     let addonConfig = appConfig.emberPdfJs
 
-    this.PDFJS = PDFJS
-    this.PDFJS.workerSrc = addonConfig.workerSrc
+    this.pdfjsViewer = pdfjsViewer
+    this.pdfjsViewer.workerSrc = addonConfig.workerSrc
+    this.pdfjsLib = pdfjsLib
+    this.pdfjsLib.GlobalWorkerOptions.workerSrc = addonConfig.workerSrc
   }
 })

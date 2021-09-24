@@ -1,4 +1,4 @@
-/* global PDFJS */
+/* global pdfjsViewer */
 import Ember from 'ember'
 import layout from '../templates/components/pdf-js'
 
@@ -6,8 +6,10 @@ const {
   PDFFindController,
   PDFHistory,
   PDFLinkService,
-  PDFViewer
-} = PDFJS
+  PDFViewer,
+  EventBus
+} = pdfjsViewer
+
 
 const {
   A,
@@ -74,7 +76,7 @@ export default Component.extend({
   classNames: ['pdf-js'],
   // Service
   pdfJs: injectService('pdf-js'),
-  pdfLib: reads('pdfJs.PDFJS'),
+  pdfLib: reads('pdfJs.pdfjsLib'),
 
   // inputs
   pdf: undefined,
@@ -106,25 +108,28 @@ export default Component.extend({
     let [container] = this.element.getElementsByClassName('pdfViewerContainer')
     this.set('_container', container)
     let pdfLinkService = new PDFLinkService()
+    let pdfEventBus = new EventBus()
     this.set('pdfLinkService', pdfLinkService)
-    let pdfViewer = new PDFViewer({
-      container,
-      linkService: pdfLinkService
-    })
-    this.set('pdfViewer', pdfViewer)
-    pdfLinkService.setViewer(pdfViewer)
     let pdfHistory = new PDFHistory({
-      linkService: pdfLinkService
+      linkService: pdfLinkService,
+      eventBus: pdfEventBus
     })
     this.set('pdfHistory', pdfHistory)
     pdfLinkService.setHistory(pdfHistory)
     let pdfFindController = new PDFFindController({
-      pdfViewer
+      linkService: pdfLinkService,
+      eventBus: pdfEventBus
     })
     this.set('pdfFindController', pdfFindController)
+    let pdfViewer = new PDFViewer({
+      container,
+      eventBus: pdfEventBus,
+      linkService: pdfLinkService,
+      findController: pdfFindController
+    })
+    this.set('pdfViewer', pdfViewer)
     // Ember.Logger.debug('pdfFindController -> ', pdfFindController)
     // Ember.Logger.debug('pdfViewer -> ', pdfViewer)
-    pdfViewer.setFindController(pdfFindController)
     pdfViewer.currentScaleValue = 'page-fit'
 
     // setup the event listening to synchronise with pdf.js' modifications
@@ -229,7 +234,7 @@ export default Component.extend({
         this.set('percentLoaded', 100 * progressData.loaded / progressData.total)
       }
 
-      loadingTask = loadingTask.then((pdfDocument) => {
+      loadingTask = loadingTask.promise.then((pdfDocument) => {
         this.set('pdfDocument', pdfDocument)
         let viewer = this.get('pdfViewer')
         viewer.setDocument(pdfDocument)
